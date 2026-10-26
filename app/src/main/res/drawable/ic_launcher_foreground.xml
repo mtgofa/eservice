@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- page -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M40,30h20l12,12v32a4,4 0,0 1,-4 4H40a4,4 0,0 1,-4 -4V34a4,4 0,0 1,4 -4z" />
+    <!-- folded corner -->
+    <path
+        android:fillColor="#FFBFD3FF"
+        android:pathData="M60,30v10a2,2 0,0 0,2 2h10z" />
+    <!-- text lines -->
+    <path
+        android:fillColor="#FF1E40AF"
+        android:pathData="M43,48h22v3H43zM43,55h22v3H43zM43,62h13v3H43z" />
+    <!-- check badge -->
+    <path
+        android:fillColor="#FF22C55E"
+        android:pathData="M70,66m-10,0a10,10 0,1 1,20 0a10,10 0,1 1,-20 0" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M65.2,66.4l2.1,-2.1 2.2,2.2 5.3,-5.3 2.1,2.1 -7.4,7.4z" />
+</vector>

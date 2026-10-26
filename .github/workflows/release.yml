@@ -1,0 +1,86 @@
+name: Release
+
+# Push a version tag (v1.2.3, matching versionName in app/build.gradle.kts) or run it by hand:
+# builds the signed APK and publishes the GitHub release that installed apps update from.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Release notes (shown in the in-app update dialog)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform and build tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Read version
+        id: version
+        run: |
+          name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          code=$(grep -oP 'versionCode = \K\d+' app/build.gradle.kts)
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" != "v$name" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match versionName $name — bump app/build.gradle.kts first"
+            exit 1
+          fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      # Every release must be signed with the same key, or installed apps can't update.
+      - name: Restore signing key and properties
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 secret missing — run tools/make-keystore.sh and add the secrets"
+            exit 1
+          fi
+          mkdir -p keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > keystore/eservice-release.jks
+          cat > keystore.properties <<PROPS
+          storeFile=keystore/eservice-release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          PROPS
+
+      - name: Build signed APK
+        run: ./gradlew assembleRelease
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          apk="eService-$NAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          sha=$(sha256sum "$apk" | cut -d' ' -f1)
+          body="${NOTES:+$NOTES
+
+          }sha256: $sha"
+          # the app reads "(code N)" from the title and verifies the sha256 line in the notes
+          gh release create "v$NAME" "$apk" -R "$GITHUB_REPOSITORY" \
+            --title "eService $NAME (code $CODE)" --notes "$body" --latest --target "$GITHUB_SHA"

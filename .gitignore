@@ -1,0 +1,17 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+app/build/
+/dist/
+
+# signing (keep private)
+keystore.properties
+keystore/
+
+*.apk
+*.aab
