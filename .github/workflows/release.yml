@@ -27,10 +27,9 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install SDK platform and build tools
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      # the runner image ships the Android SDK; this only adds the platform if it's missing
+      - name: Install SDK platform
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" > /dev/null || true
 
       - name: Read version
         id: version
